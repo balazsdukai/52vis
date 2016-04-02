@@ -61,7 +61,7 @@ report_f <- readRDS(file = "./data/drone_sightings_2014-2016.rds")
 
 Plot the reported drone sightings per quarter.
 
-```{r plot, results="hide", message=FALSE}
+```{r plot, results="hide", message=FALSE, dpi=150}
 usa <- map_data("state")
 
 sp_minimal  <- theme_void(base_size = 12, base_family = "Verdana") +
