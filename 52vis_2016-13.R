@@ -15,6 +15,9 @@
 library(readxl)
 library(ggplot2)
 library(broom)
+library(dplyr)
+library(ggmap)
+library(lubridate)
 # get copies of the data locally
 
 URL1 <- "http://www.faa.gov/uas/media/UAS_Sightings_report_21Aug-31Jan.xlsx"
@@ -31,12 +34,35 @@ if (!file.exists(fil2)) download.file(URL2, fil2)
 xl1 <- read_excel(fil1)
 xl2 <- read_excel(fil2)
 
-place <- paste(xl1[1, "LocationCITY"], xl1[1, "LocationSTATE"], sep = ",")
-(location <- geocode(place, output = "latlona", source = "google", messaging = T))
+# merge the data
+report <- setNames(bind_rows(xl2[,1:3], arrange(xl1, EventDATETIME)[,c(1,3,4)]), c("timestamp", "city", "state")) %>% 
+    mutate(place = paste(city, state, sep = ", ")) %>% 
+    select(timestamp, place) 
 
-
+# geocoding
+report <- cbind(report, geocode(report$place, output = "latlona", source = "google"))
+report_f <- filter(report, lat > 25 & lat < 50, lon > -125 | lon < -70) %>% 
+    mutate(quarter = quarter(timestamp, with_year = TRUE))
 usa <- map_data("state")
-ggplot()+  geom_map(aes(x = long, y = lat, map_id = region), data = usa, map = usa, fill = "#ffffff", color = "black", size = 0.15)
 
+# export, just in case...
+write.csv(report[,1:4], file = "./data/drone_sightings_2014-2016.csv", sep = ",", row.names = F)
 
-violent_crimes <- subset(crime, offense != "auto theft" & offense != "theft" & offense != "burglar")
+# create the plot
+sp_minimal  <- theme_void(base_size = 12, base_family = "Verdana") +
+    theme(axis.text = element_blank(),
+          axis.title = element_blank(),
+          axis.ticks = element_blank())
+
+ggplot(report_f) + 
+    geom_map(data = usa, aes(x = long, y = lat, map_id = region), map = usa, fill = "white", color = "#808080", size = 0.15) + 
+    coord_equal() +
+    sp_minimal +
+    geom_point(aes(x = lon, y = lat), size = 0.3, color = "#404040") + 
+    stat_density2d(aes(x = lon, y = lat, fill = ..level.., alpha = ..level..), bins = 4, geom = "polygon") + 
+    scale_fill_gradient(low = "#ffeda0", high = "#f03b20") +
+    facet_wrap(~quarter) +
+    guides(fill="none", alpha="none") +
+    ggtitle("Quarterly drone sightings on mainland USA") +
+    theme(strip.text.x = element_text(size=8, face="bold"), title = element_text(size = 10,face = "bold")) 
+
