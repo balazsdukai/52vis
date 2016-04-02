@@ -13,8 +13,8 @@
 # ====================
 
 library(readxl)
-library(ggmap)
-
+library(ggplot2)
+library(broom)
 # get copies of the data locally
 
 URL1 <- "http://www.faa.gov/uas/media/UAS_Sightings_report_21Aug-31Jan.xlsx"
@@ -33,3 +33,10 @@ xl2 <- read_excel(fil2)
 
 place <- paste(xl1[1, "LocationCITY"], xl1[1, "LocationSTATE"], sep = ",")
 (location <- geocode(place, output = "latlona", source = "google", messaging = T))
+
+
+usa <- map_data("state")
+ggplot()+  geom_map(aes(x = long, y = lat, map_id = region), data = usa, map = usa, fill = "#ffffff", color = "black", size = 0.15)
+
+
+violent_crimes <- subset(crime, offense != "auto theft" & offense != "theft" & offense != "burglar")
