@@ -2,7 +2,10 @@
 title: "52vis_2016-13"
 author: "Balázs Dukai"
 date: "April 2, 2016"
-output: html_document
+output: 
+  html_document: 
+    highlight: kate
+    theme: flatly
 ---
 
 ```{r load packages, message=FALSE, echo=FALSE}
@@ -12,6 +15,7 @@ library(broom)
 library(dplyr)
 library(ggmap)
 library(lubridate)
+library(ggalt)
 ```
 
 ## Question
@@ -24,8 +28,8 @@ How are the drone sightings distributed around the USA?
 URL1 <- "http://www.faa.gov/uas/media/UAS_Sightings_report_21Aug-31Jan.xlsx"
 URL2 <- "http://www.faa.gov/uas/media/UASEventsNov2014-Aug2015.xls"
 
-fil1 <- paste0("./data/", basename(URL1))
-fil2 <- paste0("./data/", basename(URL2))
+fil1 <- paste0("../data/", basename(URL1))
+fil2 <- paste0("../data/", basename(URL2))
 
 if (!file.exists(fil1)) download.file(URL1, fil1)
 if (!file.exists(fil2)) download.file(URL2, fil2)
@@ -56,30 +60,32 @@ saveRDS(report_f, file = "./data/drone_sightings_2014-2016.rds")
 ```
 
 ```{r}
-report_f <- readRDS(file = "./data/drone_sightings_2014-2016.rds")
+report_f <- readRDS(file = "../data/drone_sightings_2014-2016.rds")
 ```
 
 Plot the reported drone sightings per quarter.
 
+
+
 ```{r plot, results="hide", message=FALSE, dpi=150}
 usa <- map_data("state")
 
-sp_minimal  <- theme_void(base_size = 12, base_family = "Verdana") +
+sp_minimal  <- theme_void(base_size = 12, base_family = "Cabin") +
     theme(axis.text = element_blank(),
           axis.title = element_blank(),
           axis.ticks = element_blank())
 
 ggplot(report_f) + 
     geom_map(data = usa, aes(x = long, y = lat, map_id = region), map = usa, fill = "white", color = "#808080", size = 0.15) + 
-    coord_equal() +
+    coord_proj("+proj=merc") +
     sp_minimal +
-    geom_point(aes(x = lon, y = lat), size = 0.3, color = "#404040") + 
-    stat_density2d(aes(x = lon, y = lat, fill = ..level.., alpha = ..level..), bins = 4, geom = "polygon") + 
+    geom_point(aes(x = lon, y = lat), size = 0.2, color = "#404040") + 
+    stat_bkde2d(aes(x = lon, y = lat, fill = ..level.., alpha = ..level..), bandwidth = c(2,2), geom = "polygon") + 
     scale_fill_gradient(low = "#ffeda0", high = "#f03b20") +
     facet_wrap(~quarter) +
     guides(fill="none", alpha="none") +
-    ggtitle("Quarterly drone sightings on mainland USA") +
-    theme(strip.text.x = element_text(size=8, face="bold"), title = element_text(size = 10,face = "bold")) 
+    labs(title = "Quarterly drone sightings on mainland USA", subtitle = "As reported to the Federal Aviation Association", caption = "Data from: http://www.faa.gov/uas/law_enforcement/uas_sighting_reports/") +
+    theme(strip.text.x = element_text(size=8, face="bold", family = "Cabin" ), title = element_text(size = 14,face = "bold", family = "Cabin")) 
 ```
 
 
