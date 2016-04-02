@@ -14,15 +14,13 @@ library(ggmap)
 library(lubridate)
 ```
 
-# Question
+## Question
 
 How are the drone sightings distributed around the USA?
 
-# Get the data
+## Get the data
 
-Download the data
-
-```{r get data, eval=FALSE}
+```{r get data, message=FALSE, results='hide'}
 URL1 <- "http://www.faa.gov/uas/media/UAS_Sightings_report_21Aug-31Jan.xlsx"
 URL2 <- "http://www.faa.gov/uas/media/UASEventsNov2014-Aug2015.xls"
 
@@ -43,21 +41,29 @@ report <- setNames(bind_rows(xl2[,1:3], arrange(xl1, EventDATETIME)[,c(1,3,4)]),
     select(timestamp, place) 
 ```
 
-Now I geocode the locations of the drone sightings and create a tidy dataframe with the place names and coodrinates.
+Now I geocode the locations of the drone sightings and create a tidy data frame with the place names and coordinates.
 
-```{r geocode, eval=FALSE, include=FALSE}
+```{r geocode, eval=FALSE}
 report <- cbind(report, geocode(report$place, output = "latlona", source = "google"))
 report_f <- filter(report, lat > 25 & lat < 50, lon > -125 | lon < -70) %>% 
     mutate(quarter = quarter(timestamp, with_year = TRUE))
+```
+
+The geocoded data set is saved and read back in when knitting the r markdown, thus no need to geocode again.
+
+```{r export, eval=FALSE}
+saveRDS(report_f, file = "./data/drone_sightings_2014-2016.rds")
+```
+
+```{r}
+report_f <- readRDS(file = "./data/drone_sightings_2014-2016.rds")
+```
+
+Plot the reported drone sightings per quarter.
+
+```{r plot, results="hide", message=FALSE}
 usa <- map_data("state")
-```
 
-```{r export, include=FALSE}
-write.csv(report[,1:4], file = "./data/drone_sightings_2014-2016.csv", sep = ",", row.names = F)
-saveRDS(report, file = "./data/drone_sightings_2014-2016.rds")
-```
-
-```{r plot}
 sp_minimal  <- theme_void(base_size = 12, base_family = "Verdana") +
     theme(axis.text = element_blank(),
           axis.title = element_blank(),
@@ -77,13 +83,16 @@ ggplot(report_f) +
 ```
 
 
+## References
 
-# References
+Data source:
+
+http://www.faa.gov/uas/law_enforcement/uas_sighting_reports/
 
 The data challenge:
 
-![http://rud.is/b/2016/03/30/introducing-a-weekly-r-python-js-etc-vis-challenge/](http://rud.is/b/2016/03/30/introducing-a-weekly-r-python-js-etc-vis-challenge/)
+http://rud.is/b/2016/03/30/introducing-a-weekly-r-python-js-etc-vis-challenge/
 
 Maps and geocoding:
 
-![http://bcb.dfci.harvard.edu/~aedin/courses/R/CDC/maps.html](http://bcb.dfci.harvard.edu/~aedin/courses/R/CDC/maps.html)
+http://bcb.dfci.harvard.edu/~aedin/courses/R/CDC/maps.html
